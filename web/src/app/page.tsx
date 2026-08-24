@@ -9,7 +9,7 @@ import MotionReveal from "@/components/motion-reveal";
 import SystemLoading from "@/components/system-loading";
 
 type Session = { id: string; patientId: string; patientName: string; status: string; startedAt: string };
-type Measurement = { heartRate: number; spo2: number; measuredAt: string; signalQuality?: string; validWindowCount?: number; sampleWindowCount?: number };
+type Measurement = { heartRate: number; spo2: number; systolicBp: number; diastolicBp: number; hemoglobin: number; measuredAt: string; signalQuality?: string; validWindowCount?: number; sampleWindowCount?: number };
 type Device = { connected: boolean; state: string; fingerPresent: boolean; signalQuality: string; lastSeenAt: string; heartRate?: number; spo2?: number };
 
 const region12Locations = [
@@ -206,7 +206,7 @@ export default function Home() {
           <div className={session.status === "completed" ? "" : "capture-active"}>
             <section data-reveal className="flex flex-wrap items-end justify-between gap-5"><div><p className="signal-label">Live screening · Session 01</p><h1 className="mt-3 text-4xl font-semibold tracking-[-.04em] sm:text-5xl">{session.patientName}</h1><p className="mt-2 max-w-2xl break-all text-xs text-white/35">ID {session.id} · Started {new Date(session.startedAt).toLocaleString()}</p></div><span aria-live="polite" className={`flex items-center gap-2 rounded-full border px-4 py-2 text-sm ${session.status === "completed" ? "border-emerald-400/25 bg-emerald-400/10 text-emerald-300" : "border-amber-400/25 bg-amber-400/10 text-amber-200"}`}><i className={`h-2 w-2 rounded-full ${session.status === "completed" ? "bg-emerald-400" : "animate-pulse bg-amber-400"}`} />{session.status === "completed" ? "Screening completed" : "Awaiting measurement"}</span></section>
 
-            <section className="mt-8 grid gap-5 lg:grid-cols-2"><MeasurementCard label="Heart rate" value={measurement?.heartRate ?? device?.heartRate} unit="BPM" icon="♥" live={!measurement && device?.state === "measuring"} /><MeasurementCard label="Blood oxygen" value={measurement?.spo2 ?? device?.spo2} unit="%" icon="O₂" live={!measurement && device?.state === "measuring"} /></section>
+            <section className="mt-8 grid gap-5 lg:grid-cols-4"><MeasurementCard label="Heart rate" value={measurement?.heartRate ?? device?.heartRate} unit="BPM" icon="♥" live={!measurement && device?.state === "measuring"} /><MeasurementCard label="Blood oxygen" value={measurement?.spo2 ?? device?.spo2} unit="%" icon="O₂" live={!measurement && device?.state === "measuring"} /><MeasurementCard label="Estimated BP" value={measurement ? `${measurement.systolicBp}/${measurement.diastolicBp}` : undefined} unit="mmHg" icon="↕" /><MeasurementCard label="Estimated Hb" value={measurement?.hemoglobin} unit="g/dL" icon="Hb" /></section>
 
             {session.status !== "completed" && <CaptureConsole device={device} commandPending={commandPending} onCommand={commandDevice} onCancel={stopScreening} />}
 
@@ -222,7 +222,7 @@ function Field({ label, name, type = "text", required = false, wide = false, min
   return <label className={`future-field ${wide ? "sm:col-span-2" : ""}`}>{label}<input name={name} type={type} required={required} min={min} max={max} placeholder={placeholder} /></label>;
 }
 
-function MeasurementCard({ label, value, unit, icon, live = false }: { label: string; value?: number; unit: string; icon: string; live?: boolean }) {
+function MeasurementCard({ label, value, unit, icon, live = false }: { label: string; value?: number | string; unit: string; icon: string; live?: boolean }) {
   return <article data-reveal className="hud-status future-panel relative overflow-hidden p-6 sm:p-8"><div className="absolute right-0 top-0 h-28 w-28 rounded-full bg-red-500/10 blur-3xl"/><div className="flex items-center justify-between"><p className="signal-label">{label}</p><span className="grid h-10 w-10 place-items-center rounded-xl border border-red-400/20 bg-red-500/10 text-sm text-red-300">{icon}</span></div><p className="mt-8 text-5xl font-semibold tracking-[-.06em] sm:text-6xl">{value ?? "—"}<span className="ml-3 text-lg font-medium tracking-normal text-white/30">{unit}</span></p><div className="mt-7 flex items-center justify-between border-t border-white/10 pt-5 text-sm"><span className="text-white/40">{live ? "Live sensor telemetry · 500 ms" : value ? "Verified result" : "Waiting for sensor"}</span><span className={value ? "text-emerald-300" : "text-amber-200"}>{live ? "● Live" : value ? "● Stable" : "○ Pending"}</span></div></article>;
 }
 
