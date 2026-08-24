@@ -8,8 +8,16 @@ const assessmentModel = process.env.GROQ_MODEL ?? "openai/gpt-oss-120b";
 
 export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const assessment = db.prepare("SELECT summary, suggestions, spoken_text AS spokenText, model, created_at AS createdAt FROM ai_assessments WHERE screening_session_id = ?").get(id);
-  return Response.json({ assessment: assessment ?? null });
+  const assessment = db.prepare("SELECT summary, suggestions, spoken_text AS spokenText, model, created_at AS createdAt FROM ai_assessments WHERE screening_session_id = ?").get(id) as { summary: string; suggestions: string; spokenText: string; model: string; createdAt: string } | undefined;
+  if (!assessment) return Response.json({ assessment: null });
+  const estimates = db.prepare("SELECT estimated_systolic_bp AS systolicBp, estimated_diastolic_bp AS diastolicBp, estimated_hemoglobin AS hemoglobin FROM measurements WHERE screening_session_id = ?").get(id) as { systolicBp: number; diastolicBp: number; hemoglobin: number } | undefined;
+  if (estimates && !assessment.summary.includes("Estimated blood pressure")) {
+    const facts = ` Estimated blood pressure is ${estimates.systolicBp}/${estimates.diastolicBp} mmHg and estimated hemoglobin is ${estimates.hemoglobin} g/dL. These are calculated estimates from available sensor data.`;
+    assessment.summary = `${assessment.summary}${facts}`.slice(0, 1200);
+    assessment.spokenText = `${assessment.spokenText}${facts}`.slice(0, 3500);
+    db.prepare("UPDATE ai_assessments SET summary = ?, spoken_text = ? WHERE screening_session_id = ?").run(assessment.summary, assessment.spokenText, id);
+  }
+  return Response.json({ assessment: { ...assessment, suggestions: JSON.parse(assessment.suggestions) } });
 }
 
 export async function POST(_request: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -17,8 +25,17 @@ export async function POST(_request: Request, { params }: { params: Promise<{ id
   if (!apiKey) return Response.json({ error: "Groq is not configured. Set GROQ_API_KEY, then restart HemoSync." }, { status: 503 });
 
   const { id } = await params;
-  const existing = db.prepare("SELECT summary, suggestions, spoken_text AS spokenText, model, created_at AS createdAt FROM ai_assessments WHERE screening_session_id = ?").get(id);
-  if (existing) return Response.json({ assessment: existing });
+  const existing = db.prepare("SELECT summary, suggestions, spoken_text AS spokenText, model, created_at AS createdAt FROM ai_assessments WHERE screening_session_id = ?").get(id) as { summary: string; suggestions: string; spokenText: string; model: string; createdAt: string } | undefined;
+  if (existing) {
+    const estimates = db.prepare("SELECT estimated_systolic_bp AS systolicBp, estimated_diastolic_bp AS diastolicBp, estimated_hemoglobin AS hemoglobin FROM measurements WHERE screening_session_id = ?").get(id) as { systolicBp: number; diastolicBp: number; hemoglobin: number } | undefined;
+    if (estimates && !existing.summary.includes("Estimated blood pressure")) {
+      const facts = ` Estimated blood pressure is ${estimates.systolicBp}/${estimates.diastolicBp} mmHg and estimated hemoglobin is ${estimates.hemoglobin} g/dL. These are calculated estimates from available sensor data.`;
+      existing.summary = `${existing.summary}${facts}`.slice(0, 1200);
+      existing.spokenText = `${existing.spokenText}${facts}`.slice(0, 3500);
+      db.prepare("UPDATE ai_assessments SET summary = ?, spoken_text = ? WHERE screening_session_id = ?").run(existing.summary, existing.spokenText, id);
+    }
+    return Response.json({ assessment: { ...existing, suggestions: JSON.parse(existing.suggestions) } });
+  }
   const row = db.prepare(`SELECT p.full_name AS patientName, m.heart_rate_bpm AS heartRate, m.spo2_percent AS spo2, m.estimated_systolic_bp AS systolicBp, m.estimated_diastolic_bp AS diastolicBp, m.estimated_hemoglobin AS hemoglobin, m.signal_quality AS signalQuality, m.valid_window_count AS validWindowCount, m.sample_window_count AS sampleWindowCount FROM screening_sessions s JOIN patients p ON p.id = s.patient_id JOIN measurements m ON m.screening_session_id = s.id WHERE s.id = ? AND s.status = 'completed'`).get(id) as { patientName: string; heartRate: number; spo2: number; systolicBp: number; diastolicBp: number; hemoglobin: number; signalQuality: string; validWindowCount: number; sampleWindowCount: number } | undefined;
   if (!row) return Response.json({ error: "Completed screening result not found." }, { status: 404 });
 
@@ -28,7 +45,9 @@ export async function POST(_request: Request, { params }: { params: Promise<{ id
     if (!response.ok) return Response.json({ error: "Groq could not assess this screening." }, { status: 502 });
     const content = (await response.json()).choices?.[0]?.message?.content;
     const generated = JSON.parse(content) as { summary?: unknown; suggestions?: unknown };
-    const summary = typeof generated.summary === "string" ? generated.summary.trim().slice(0, 1200) : "";
+    const generatedSummary = typeof generated.summary === "string" ? generated.summary.trim() : "";
+    const estimateFacts = `Estimated blood pressure is ${row.systolicBp}/${row.diastolicBp} mmHg and estimated hemoglobin is ${row.hemoglobin} g/dL. These are calculated estimates from available sensor data.`;
+    const summary = `${generatedSummary} ${estimateFacts}`.trim().slice(0, 1200);
     const suggestions = Array.isArray(generated.suggestions) ? generated.suggestions.filter((item): item is string => typeof item === "string").slice(0, 3).map((item) => item.trim().slice(0, 280)) : [];
     if (!summary || suggestions.length !== 3) throw new Error("Invalid Groq response");
     const spokenText = `Scan completed. Average heart rate ${row.heartRate} beats per minute. Blood oxygen ${row.spo2} percent. Estimated blood pressure ${row.systolicBp} over ${row.diastolicBp} millimeters of mercury. Estimated hemoglobin ${row.hemoglobin} grams per deciliter. ${summary} Suggestions: ${suggestions.join(". ")}`.slice(0, 3500);
