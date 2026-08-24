@@ -7,7 +7,7 @@ import SystemLoading from "@/components/system-loading";
 import SiteHeader from "@/components/site-header";
 
 type Assessment = { summary: string; suggestions: string[]; spokenText: string; model: string; createdAt: string };
-type Detail = { session: { id: string; patientId: string; patientName: string; status: string; startedAt: string; completedAt: string | null; cancelledAt: string | null }; measurement: { heartRate: number; spo2: number; measuredAt: string; averageIr: number; signalQuality: string; sampleWindowCount: number; validWindowCount: number; heartRateMin: number; heartRateMax: number; spo2Min: number; spo2Max: number } | null; assessment: Assessment | null };
+type Detail = { session: { id: string; patientId: string; patientName: string; status: string; startedAt: string; completedAt: string | null; cancelledAt: string | null }; measurement: { heartRate: number; spo2: number; systolicBp: number; diastolicBp: number; hemoglobin: number; measuredAt: string; averageIr: number; signalQuality: string; sampleWindowCount: number; validWindowCount: number; heartRateMin: number; heartRateMax: number; spo2Min: number; spo2Max: number } | null; assessment: Assessment | null };
 export default function SessionPage() {
   const { id } = useParams<{ id: string }>(); const [detail, setDetail] = useState<Detail | null>(null); const [error, setError] = useState(""); const [assessing, setAssessing] = useState(false); const [speaking, setSpeaking] = useState(false); const startedAssessment = useRef(false); const startedSpeech = useRef(false);
   useEffect(() => { fetch(`/api/screening-sessions/${id}`).then(async (r) => { const data = await r.json(); if (!r.ok) throw new Error(data.error); setDetail(data); }).catch((e) => setError(e.message)); }, [id]);

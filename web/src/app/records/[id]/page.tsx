@@ -7,7 +7,7 @@ import SystemLoading from "@/components/system-loading";
 import SiteHeader from "@/components/site-header";
 
 type Patient = { id: string; fullName: string; dateOfBirth: string; sex: string; email: string; mobileNumber: string; archivedAt: string | null };
-type Session = { id: string; status: string; startedAt: string; completedAt: string | null; heartRate: number | null; spo2: number | null; signalQuality: string | null };
+type Session = { id: string; status: string; startedAt: string; completedAt: string | null; heartRate: number | null; spo2: number | null; systolicBp: number | null; diastolicBp: number | null; hemoglobin: number | null; signalQuality: string | null };
 
 export default function PatientPage() {
   const { id } = useParams<{ id: string }>();

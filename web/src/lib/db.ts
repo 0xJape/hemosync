@@ -44,6 +44,9 @@ addColumn("measurements", "heart_rate_min INTEGER");
 addColumn("measurements", "heart_rate_max INTEGER");
 addColumn("measurements", "spo2_min INTEGER");
 addColumn("measurements", "spo2_max INTEGER");
+addColumn("measurements", "estimated_systolic_bp INTEGER");
+addColumn("measurements", "estimated_diastolic_bp INTEGER");
+addColumn("measurements", "estimated_hemoglobin REAL");
 
 db.exec(`
   UPDATE patients SET updated_at = created_at WHERE updated_at IS NULL;
