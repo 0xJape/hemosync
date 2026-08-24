@@ -99,6 +99,10 @@ button { cursor: pointer; }
 .system-loading__track { height: 2px; overflow: hidden; margin-top: 1.25rem; background: rgba(255,255,255,.08); }
 .system-loading__track i { display: block; width: 45%; height: 100%; background: linear-gradient(90deg, transparent, #ef4444, transparent); animation: system-scan 1.2s ease-in-out infinite; }
 .hud-status { position: relative; overflow: hidden; }
+.vital-card { position: relative; overflow: hidden; background: radial-gradient(circle at 100% 0, rgba(239,68,68,.14), transparent 32%), linear-gradient(145deg, rgba(255,255,255,.09), rgba(255,255,255,.025)); transition: transform .25s, border-color .25s, box-shadow .25s; }
+.vital-card:hover { transform: translateY(-4px); border-color: rgba(248,113,113,.42); box-shadow: 0 24px 70px rgba(127,29,29,.22), 0 0 0 1px rgba(248,113,113,.08) inset; }
+.vital-card__top { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+.vital-card__pulse { width: .65rem; height: .65rem; border: 1px solid rgba(252,165,165,.85); border-radius: 50%; background: rgba(239,68,68,.55); box-shadow: 0 0 0 5px rgba(239,68,68,.08), 0 0 18px rgba(239,68,68,.6); }
 .hud-status::after { position: absolute; inset: 0; pointer-events: none; content: ""; background: linear-gradient(110deg, transparent 35%, rgba(255,255,255,.06) 50%, transparent 65%); transform: translateX(-100%); animation: hud-shimmer 5s ease-in-out infinite; }
 @keyframes system-orbit { to { transform: rotate(360deg); } }
 @keyframes system-pulse { to { transform: scale(.7); opacity: .55; } }
