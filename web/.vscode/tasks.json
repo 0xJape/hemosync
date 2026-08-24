@@ -4,10 +4,10 @@
 		{
 			"label": "HemoSync hardware receiver",
 			"type": "shell",
-			"command": "npm",
+			"command": "cmd",
 			"args": [
-				"run",
-				"start"
+				"/c",
+				"if not exist node_modules npm.cmd install && npm.cmd run start"
 			],
 			"isBackground": true,
 			"problemMatcher": [],
