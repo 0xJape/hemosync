@@ -2,6 +2,10 @@ import db from "@/lib/db";
 
 export const runtime = "nodejs";
 
+function asciiText(value: string) {
+  return value.normalize("NFKD").replace(/[\u0300-\u036f]/g, "").replace(/[–—‑]/g, "-").replace(/[“”]/g, '"').replace(/[‘’]/g, "'").replace(/→/g, "->").replace(/[^\x20-\x7E\r\n]/g, "");
+}
+
 type Patient = { id: string; fullName: string; dateOfBirth: string; sex: string; email: string; mobileNumber: string };
 type Screening = { id: string; status: string; completedAt: string | null; heartRate: number | null; spo2: number | null; signalQuality: string | null; assessmentSummary: string | null; assessmentSuggestions: string | null };
 
@@ -17,8 +21,8 @@ export async function POST(_request: Request, { params }: { params: Promise<{ id
   const recipient = patient.mobileNumber.startsWith("0") ? `+63${patient.mobileNumber.slice(1)}` : patient.mobileNumber;
   const smsPrefix = `HemoSync: HR ${latest?.heartRate ?? "N/A"} BPM, SpO2 ${latest?.spo2 ?? "N/A"}%, signal ${latest?.signalQuality ?? "N/A"}. `;
   const smsSuffix = " Screening only; not diagnosis.";
-  const assessment = latest?.assessmentSummary ?? "See emailed report for screening guidance.";
-  const smsContent = `${smsPrefix}${assessment.slice(0, Math.max(0, 160 - smsPrefix.length - smsSuffix.length))}${smsSuffix}`;
+  const assessment = asciiText(latest?.assessmentSummary ?? "See emailed report for screening guidance.");
+  const smsContent = asciiText(`${smsPrefix}${assessment.slice(0, Math.max(0, 160 - smsPrefix.length - smsSuffix.length))}${smsSuffix}`);
   const smsRequestBody = JSON.stringify({
     recipient,
     content: smsContent,
