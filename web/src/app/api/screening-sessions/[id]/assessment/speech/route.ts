@@ -9,7 +9,7 @@ export async function POST(_request: Request, { params }: { params: Promise<{ id
   const assessment = db.prepare("SELECT spoken_text AS spokenText FROM ai_assessments WHERE screening_session_id = ?").get(id) as { spokenText: string } | undefined;
   if (!assessment) return Response.json({ error: "Create assessment before audio." }, { status: 409 });
   try {
-    const response = await fetch("https://api.groq.com/openai/v1/audio/speech", { method: "POST", headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" }, body: JSON.stringify({ model: "canopylabs/orpheus-v1-english", voice: "tara", response_format: "wav", input: assessment.spokenText }) });
+    const response = await fetch("https://api.groq.com/openai/v1/audio/speech", { method: "POST", headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" }, body: JSON.stringify({ model: "canopylabs/orpheus-v1-english", voice: "daniel", response_format: "wav", input: assessment.spokenText }) });
     if (!response.ok) {
       const detail = await response.text();
       console.error("Groq TTS failed", response.status, detail.slice(0, 500));
